@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1b6a59">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EM Habit Tracker">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Edwin Moindi Habit &amp; Energy Tracker</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: one chat column. Header, scrolling thread, composer pinned at the bottom.
+   Palette: ink-green neutrals with a teal accent. Type: Space Grotesk for headings, Inter for text. */
+:root {
+  --display: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --text: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bg: #f3f6f4; --surface: #ffffff; --bot: #e5ece8; --ink: #15201c; --muted: #58665f;
+  --line: #d3ddd8; --accent: #1b6a59; --on-accent: #ffffff;
+  --pos: #22734a; --neu: #5a646c; --neg: #a5372e; --warn: #875a12;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101815; --surface: #18221f; --bot: #22302b; --ink: #e8f0ec; --muted: #9db0a8;
+    --line: #2c3b36; --accent: #5ec4a8; --on-accent: #0b1613;
+    --pos: #7fd3a4; --neu: #b5bec0; --neg: #f09186; --warn: #e7b75c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101815; --surface: #18221f; --bot: #22302b; --ink: #e8f0ec; --muted: #9db0a8;
+  --line: #2c3b36; --accent: #5ec4a8; --on-accent: #0b1613;
+  --pos: #7fd3a4; --neu: #b5bec0; --neg: #f09186; --warn: #e7b75c;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 var(--text);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  overflow-x: hidden;
+}
+#app { height: 100%; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; min-height: 0; }
+.top {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  padding: 14px 0 10px; border-bottom: 1px solid var(--line);
+}
+.brand { font: 700 19px/1.2 var(--display); }
+.logo { display: block; width: 170px; height: auto; background: #ffffff; border-radius: 8px; padding: 6px 10px; box-sizing: content-box; }
+.brand-sub { font: 600 13px/1.2 var(--text); color: var(--muted); margin-top: 6px; letter-spacing: .02em; }
+.sub { color: var(--muted); font-size: 13px; }
+.right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; text-align: right; }
+.prog { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#thread { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px 0; }
+.msg { max-width: 88%; padding: 10px 13px; border-radius: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.msg.bot { background: var(--bot); align-self: flex-start; border-bottom-left-radius: 4px; }
+.msg.me { background: var(--accent); color: var(--on-accent); align-self: flex-end; border-bottom-right-radius: 4px; }
+.msg.wide { max-width: 100%; width: 100%; background: transparent; padding: 0; }
+.composer { border-top: 1px solid var(--line); padding: 12px 0 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 38vh; overflow-y: auto; padding: 2px; }
+.chip {
+  font: 500 14px var(--text); min-height: 40px; padding: 8px 13px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.chip.pos { color: var(--pos); }
+.chip.neu { color: var(--neu); }
+.chip.neg { color: var(--neg); }
+.chip.sel { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.head { flex-basis: 100%; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+.row { margin-top: 10px; display: flex; justify-content: flex-end; }
+.btn {
+  font: 600 15px var(--text); background: var(--accent); color: var(--on-accent);
+  border: 0; border-radius: 10px; padding: 12px 16px; min-height: 44px; cursor: pointer;
+}
+.ghost {
+  font: 500 14px var(--text); background: transparent; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 44px; cursor: pointer;
+}
+.ghost.small { padding: 6px 10px; min-height: 34px; font-size: 13px; }
+form.inline { display: flex; gap: 8px; flex-wrap: wrap; }
+form.inline input {
+  flex: 1 1 180px; min-width: 0; font: inherit; padding: 11px 12px; min-height: 44px;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .6; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.card h3 { font: 700 18px var(--display); margin: 0 0 4px; }
+.card h4 { font: 600 12px var(--text); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+.stat { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.stat b { display: block; font: 700 20px var(--display); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.stat.pos b { color: var(--pos); }
+.stat.neu b { color: var(--neu); }
+.stat.neg b { color: var(--neg); }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 130px; border-bottom: 1px solid var(--line); }
+.bcol { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+.bar.empty { background: transparent; border: 1px dashed var(--line); border-bottom: 0; height: 12px; }
+.bar.sleep { background: var(--line); }
+.bcol span { font-size: 10px; color: var(--muted); margin-top: 4px; white-space: nowrap; }
+.pgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.pg { font-size: 13px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; color: var(--muted); text-align: center; }
+.pg.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.g-inc { color: var(--pos); } .g-red { color: var(--warn); } .g-rem { color: var(--neg); } .g-cre { color: var(--accent); }
+.card ul { margin: 4px 0 0; padding-left: 18px; }
+.card li { margin: 4px 0; }
+.note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+.checkin p { margin: 4px 0 8px; }
+.cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cols > div { min-width: 0; }
+.cols b { font-size: 13px; }
+@media (max-width: 420px) {
+  .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cols { grid-template-columns: 1fr; }
+}
+/* Mobile refinements */
+@supports (height: 100dvh) { #app { height: 100dvh; } }
+#thread { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+/* Leave room at the bottom so the hosting badge in the corner never covers a button. */
+.composer { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+.composer .chips { padding-right: 56px; }
+.chips { max-height: min(42vh, 340px); }
+.chip, .btn, .ghost { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.chip { min-height: 44px; }
+form.inline input { font-size: 16px; }
+.bars { gap: 2px; }
+.bcol span { font-size: 9px; }
+@media (max-width: 420px) {
+  .top { padding: 10px 0 8px; }
+  .logo { width: 150px; padding: 5px 8px; }
+  .brand-sub { font-size: 12px; margin-top: 4px; }
+  .right { gap: 4px; }
+  .prog { font-size: 11px; }
+  .ghost.small { font-size: 12px; padding: 5px 8px; }
+  .msg { max-width: 92%; padding: 9px 12px; }
+  .chip { font-size: 15px; padding: 9px 14px; }
+  .card { padding: 14px; }
+  .card h3 { font-size: 17px; }
+  .stat b { font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+.auth { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.auth input { font: inherit; font-size: 16px; min-height: 44px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.auth .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.consent { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--muted); }
+.consent input { margin-top: 3px; min-height: auto; }
+</style>
+
+<div id="app">
+  <header class="top">
+    <div>
+      <img class="logo" src="logo.png" alt="Edwin Moindi" height="30"><div class="brand-sub">Habit &amp; Energy Tracker</div>
+      <div class="sub" id="today"></div>
+    </div>
+    <div class="right">
+      <div class="prog" id="prog"></div>
+      <button class="ghost small" id="remind" type="button">Turn on reminders</button>
+    </div>
+  </header>
+  <main id="thread" aria-live="polite"></main>
+  <section id="composer" class="composer"></section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Content from the tracker ----------
+  // Hourly blocks covering the whole day, 12:00am to 12:00am (24 blocks).
+  function hourLabel(x) { return (x % 12 || 12) + ":00" + (x < 12 ? "am" : "pm"); }
+  var BLOCKS = [];
+  for (var h = 0; h < 24; h++) {
+    BLOCKS.push([hourLabel(h) + " – " + hourLabel((h + 1) % 24), String(h % 12 || 12)]);
+  }
+  var PILLARS = [
+    { name: "Family", starter: "a 15-minute call or a shared meal" },
+    { name: "Social", starter: "message one friend and make a plan" },
+    { name: "Financial", starter: "give one money item 10 minutes of attention" },
+    { name: "Legacy", starter: "write one sentence on the impact you want to have" },
+    { name: "Circle of Genius", starter: "spend 20 minutes learning from a mentor, book or course" },
+    { name: "Spirituality", starter: "five minutes of stillness before your first task" },
+    { name: "Health", starter: "a 20-minute walk, a stretch, or a proper meal" },
+    { name: "Adventure", starter: "try one small new thing" },
+    { name: "Human Capital", starter: "one focused hour on a skill you are building" }
+  ];
+  var POS = "Joy Gratitude Serenity Hope Pride Amusement Inspiration Awe Love Excitement Enthusiasm Contentment Confidence Curiosity Calm Empathy Relief Satisfaction Optimism Playfulness Warmth Wonder Motivated Energised".split(" ");
+  var NEU = "Indifferent Contemplative Nostalgic Pensive Surprised Ambivalent Detached Thoughtful Uncertain Bored Resigned Cautious Numb Restless Distracted".split(" ");
+  var NEG = "Anger Frustration Anxiety Fear Sadness Guilt Shame Overwhelmed Loneliness Jealousy Resentment Disappointment Hopelessness Irritability Stress Exhaustion Dread Grief Insecurity Confusion Regret Embarrassment Envy Helplessness".split(" ");
+  var GRAT = [
+    { k: "wins", t: "Wins", q: "Name three specific things that went well today.", ph: "Type one win", min: 3 },
+    { k: "mundanes", t: "Mundanes", q: "Name three ordinary things you are grateful for today. A meal, a working light, a quiet road.", ph: "Type one ordinary good thing", min: 3 },
+    { k: "challenges", t: "Challenges", q: "Name three things that were hard today, and what each one taught you.", ph: "Type one challenge and its lesson", min: 3 }
+  ];
+  var REFL = [
+    ["energyGave", "What gave me energy today?"],
+    ["energyDrained", "What drained my energy today?"],
+    ["keyEmotion", "Key emotion of the day, and why?"],
+    ["winAdjust", "One habit win, and one adjustment for tomorrow?"]
+  ];
+  var MENU = [
+    { label: "Log a time block", value: "log" },
+    { label: "Pillar check", value: "pillars" },
+    { label: "Gratitude journal", value: "grat" },
+    { label: "Close the day", value: "close" },
+    { label: "Day summary", value: "summary" },
+    { label: "History", value: "history" },
+    { label: "Download my data", value: "export" },
+    { label: "Restore from backup", value: "restore" },
+    { label: "Import filled Word form", value: "import" },
+    { label: "Send report to Coach Edwin", value: "send" },
+    { label: "Sign out", value: "signout" }
+  ];
+
+  // ---------- Storage (per viewer, on this device) ----------
+  var KEY = "habitEnergyCoach.v1";
+  function load() {
+    try {
+      var s = JSON.parse(localStorage.getItem(KEY));
+      if (s && typeof s === "object" && s.days) {
+        if (!s.v || s.v < 3) {
+          // v1 had two-hour blocks, v2 had hourly blocks from 5am. v3 has 24 hourly blocks from 12am.
+          var from = s.v || 1;
+          Object.keys(s.days).forEach(function (k) {
+            (s.days[k].blocks || []).forEach(function (b) {
+              if (from === 1) b.block = b.block * 2;
+              b.block = b.block === 19 ? 0 : b.block + 5;
+              b.time = BLOCKS[b.block][0];
+            });
+          });
+          s.v = 3;
+          try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+        }
+        return s;
+      }
+    } catch (e) {}
+    return { v: 3, name: "", days: {}, eveningPrompted: "", reminders: false };
+  }
+  var state = load();
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    if (sb && session) { clearTimeout(pushTimer); pushTimer = setTimeout(pushRemote, 1200); }
+  }
+
+  function dayKey(d) {
+    d = d || new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function day() {
+    var k = dayKey();
+    if (!state.days[k]) state.days[k] = { blocks: [], pillars: [], gratitude: [], reflection: {}, closed: false, energy: null };
+    return state.days[k];
+  }
+  function blockIdxFor(h) { return h; }
+  function blockIdxNow() { return blockIdxFor(new Date().getHours()); }
+
+  // ---------- DOM helpers ----------
+  var thread = document.getElementById("thread");
+  var composer = document.getElementById("composer");
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function el(tag, cls) { var n = document.createElement(tag); if (cls) n.className = cls; return n; }
+  function addMsg(cls, html) {
+    var d = el("div", "msg " + cls);
+    d.innerHTML = html;
+    thread.appendChild(d);
+    thread.scrollTop = thread.scrollHeight;
+    return d;
+  }
+  function bot(html, wide) { return addMsg("bot" + (wide ? " wide" : ""), html); }
+  function say(text) { addMsg("me", esc(text)); }
+
+  // ---------- Input widgets ----------
+  function askText(ph, onSubmit, opt) {
+    opt = opt || {};
+    composer.innerHTML = "";
+    var f = el("form", "inline");
+    var inp = el("input");
+    inp.type = "text"; inp.placeholder = ph; inp.setAttribute("aria-label", ph); inp.autocomplete = "off";
+    var go = el("button", "btn"); go.type = "submit"; go.textContent = "Send";
+    f.appendChild(inp); f.appendChild(go);
+    if (opt.optional) {
+      var sk = el("button", "ghost"); sk.type = "button"; sk.textContent = "Skip";
+      sk.onclick = function () { say("Skipped"); onSubmit(""); };
+      f.appendChild(sk);
+    }
+    if (opt.onDone) {
+      var dn = el("button", "ghost"); dn.type = "button"; dn.textContent = opt.doneLabel || "Done";
+      dn.onclick = function () { say(opt.doneLabel || "Done"); opt.onDone(); };
+      f.appendChild(dn);
+    }
+    f.onsubmit = function (e) {
+      e.preventDefault();
+      var v = inp.value.trim();
+      if (!v && !opt.optional) { inp.focus(); return; }
+      say(v || "Skipped");
+      if (opt.keep) { inp.value = ""; inp.focus(); }
+      onSubmit(v);
+    };
+    composer.appendChild(f);
+    setTimeout(function () { inp.focus(); }, 50);
+  }
+
+  function chips(items, onPick, opt) {
+    opt = opt || {};
+    composer.innerHTML = "";
+    var wrap = el("div", "chips");
+    var sel = new Set(opt.initial || []);
+    items.forEach(function (it) {
+      if (it.head) { var h = el("div", "head"); h.textContent = it.head; wrap.appendChild(h); return; }
+      var b = el("button", "chip" + (it.cls ? " " + it.cls : ""));
+      b.type = "button"; b.textContent = it.label;
+      if (opt.multi && sel.has(it.value)) b.classList.add("sel");
+      b.onclick = function () {
+        if (opt.multi) {
+          if (sel.has(it.value)) { sel.delete(it.value); b.classList.remove("sel"); }
+          else { sel.add(it.value); b.classList.add("sel"); }
+        } else {
+          say(it.label);
+          onPick(it.value);
+        }
+      };
+      wrap.appendChild(b);
+    });
+    composer.appendChild(wrap);
+    if (opt.multi) {
+      var row = el("div", "row");
+      var d = el("button", "btn"); d.type = "button"; d.textContent = "Done";
+      d.onclick = function () {
+        var vals = Array.from(sel);
+        var labels = items.filter(function (i) { return !i.head && sel.has(i.value); }).map(function (i) { return i.label; });
+        say(labels.length ? labels.join(", ") : "None");
+        onPick(vals);
+      };
+      row.appendChild(d);
+      composer.appendChild(row);
+    }
+  }
+
+  // ---------- Time log flow ----------
+  function logBlock() {
+    bot("Which time block is this about?");
+    var cur = blockIdxNow();
+    var d = day();
+    var items = [{ label: "Sleep", value: "sleep", cls: "pos" }].concat(BLOCKS.map(function (b, i) {
+      var logged = d.blocks.some(function (x) { return x.block === i; });
+      return { label: (i === cur ? "Now · " : "") + b[0] + (logged ? " ✓" : ""), value: i };
+    }));
+    chips(items, function (v) { if (v === "sleep") askSleep(); else askActivity(v); });
+  }
+  // ---------- Sleep: bedtime and duration, logged automatically at 5:00am ----------
+  var BED_HOURS = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4];
+  function hourName(h) { return (h % 12 || 12) + (h < 12 ? "am" : "pm"); }
+  function dayAt(k) {
+    if (!state.days[k]) state.days[k] = { blocks: [], pillars: [], gratitude: [], reflection: {}, closed: false, energy: null };
+    return state.days[k];
+  }
+  function askSleep() {
+    bot("What time do you go to sleep?");
+    chips(BED_HOURS.map(function (h) { return { label: hourName(h), value: h }; }), function (bed) { askSleepHours(bed); });
+  }
+  function askSleepHours(bed) {
+    bot("How many hours will you sleep? It will be logged automatically at 5:00am.");
+    var items = [];
+    for (var n = 1; n <= 12; n++) items.push({ label: n + (n === 1 ? " hour" : " hours"), value: n });
+    chips(items, function (hrs) {
+      var now = new Date();
+      var base = now.getHours() < 5 ? now.getDate() : now.getDate() + 1;
+      var target = new Date(now.getFullYear(), now.getMonth(), base);
+      state.sleepPlan = { id: Date.now(), bedHour: bed, hours: hrs, targetDate: dayKey(target) };
+      save();
+      bot("Sleep planned: " + hourName(bed) + " to " + hourName((bed + hrs) % 24) + " (" + hrs + " hour" + (hrs === 1 ? "" : "s") +
+        "). It will be logged automatically at 5:00am on " + state.sleepPlan.targetDate + ".");
+      chips([{ label: "Log another block", value: "again" }, { label: "Back to menu", value: "menu" }],
+        function (v) { if (v === "again") logBlock(); else showMenu(); });
+    });
+  }
+  function bedtimeFor(plan) {
+    var t = plan.targetDate.split("-").map(Number);
+    var bed = new Date(t[0], t[1] - 1, t[2]);
+    if (plan.bedHour >= 12) bed.setDate(bed.getDate() - 1);
+    bed.setHours(plan.bedHour, 0, 0, 0);
+    return bed;
+  }
+  function placeSleep(p) {
+    var bed = bedtimeFor(p);
+    var night = dayKey(bed);
+    var hours = [];
+    for (var k = 0; k < p.hours; k++) {
+      var t = new Date(bed.getTime() + k * 3600000);
+      hours.push({ key: dayKey(t), block: t.getHours() });
+    }
+    var keys = hours.map(function (h) { return h.key; }).filter(function (v, i, arr) { return arr.indexOf(v) === i; });
+    keys.forEach(function (key) {
+      var rec = dayAt(key);
+      rec.blocks = rec.blocks.filter(function (b) { return !(b.sleep && b.night === night); });
+    });
+    hours.forEach(function (h) {
+      dayAt(h.key).blocks.push({ block: h.block, time: BLOCKS[h.block][0], activity: "Sleep", pillar: "Health", emotion: null, energy: null,
+        impact: "Positive", sleep: true, night: night, at: Date.now() });
+    });
+    return "Sleep logged: " + hourName(bed.getHours()) + " to " + hourName((bed.getHours() + p.hours) % 24) +
+      " (" + p.hours + " hours), night of " + night + ".";
+  }
+  function applyPendingSleep() {
+    var p = state.sleepPlan;
+    if (!p) return null;
+    var now = new Date();
+    var due = dayKey(now) > p.targetDate || (dayKey(now) === p.targetDate && now.getHours() >= 5);
+    if (!due) return null;
+    var msg = placeSleep(p);
+    state.sleepPlan = null;
+    save();
+    return msg.replace("Sleep logged:", "Sleep logged automatically:");
+  }
+  function askActivity(i) {
+    bot("<b>" + BLOCKS[i][0] + "</b>. Which pillar are you working in?");
+    askPillar(i);
+  }
+  function askPillar(i) {
+    var items = PILLARS.map(function (p) { return { label: p.name, value: p.name }; });
+    items.push({ label: "No pillar", value: "None" });
+    chips(items, function (p) { askDoing(i, p); });
+  }
+  function askDoing(i, p) {
+    bot("Within " + esc(p === "None" ? "your day" : p) + ", what were you doing?");
+    askText("e.g. client call, lunch, scrolling", function (act) {
+      askEmotion(i, act || "Unspecified", p);
+    }, { optional: true });
+  }
+  // Brené Brown, Atlas of the Heart: 87 emotions and experiences in 13 clusters.
+  var ATLAS = [
+    { name: "Things Are Uncertain Or Too Much", items: ["Stress", "Overwhelm", "Anxiety", "Worry", "Avoidance", "Excitement", "Dread", "Fear", "Vulnerability"] },
+    { name: "We're Hurting", items: ["Anguish", "Hopelessness", "Despair", "Sadness", "Grief"] },
+    { name: "Life Is Good", items: ["Joy", "Happiness", "Calm", "Contentment", "Gratitude", "Foreboding Joy", "Relief", "Tranquility"] },
+    { name: "Things Don't Go As Planned", items: ["Boredom", "Disappointment", "Expectations", "Regret", "Discouragement", "Resignation", "Frustration"] },
+    { name: "We Fall Short", items: ["Shame", "Self-Compassion", "Perfectionism", "Guilt", "Humiliation", "Embarrassment"] },
+    { name: "To Self-Assess", items: ["Pride", "Hubris", "Humility"] },
+    { name: "We Compare", items: ["Comparison", "Admiration", "Reverence", "Envy", "Jealousy", "Resentment", "Schadenfreude", "Freudenfreude"] },
+    { name: "With Others", items: ["Compassion", "Pity", "Empathy", "Sympathy", "Boundaries", "Comparative Suffering"] },
+    { name: "We Feel Wronged", items: ["Anger", "Contempt", "Disgust", "Dehumanization", "Hate", "Self-Righteousness"] },
+    { name: "It's Beyond Us", items: ["Awe", "Wonder", "Confusion", "Curiosity", "Interest", "Surprise"] },
+    { name: "We Search for Connection", items: ["Belonging", "Fitting In", "Connection", "Disconnection", "Insecurity", "Invisibility", "Loneliness"] },
+    { name: "Things Aren't What They Seem", items: ["Amusement", "Bittersweetness", "Nostalgia", "Cognitive Dissonance", "Paradox", "Irony", "Sarcasm"] },
+    { name: "The Heart Is Open", items: ["Love", "Lovelessness", "Heartbreak", "Trust", "Self-Trust", "Betrayal", "Defensiveness", "Flooding", "Hurt"] }
+  ];
+  function askEmotion(i, act, p) {
+    bot("Which emotion from Brené Brown's Atlas of the Heart fits best? Pick the closest one.");
+    var items = [];
+    ATLAS.forEach(function (c) {
+      items.push({ head: c.name });
+      c.items.forEach(function (w) { items.push({ label: w, value: w }); });
+    });
+    chips(items, function (em) { askEnergy(i, act, p, em); });
+  }
+  function askEnergy(i, act, p, em) {
+    bot("Energy level, from 1 to 10?");
+    var items = [];
+    for (var n = 1; n <= 10; n++) items.push({ label: String(n), value: n, cls: n <= 4 ? "neg" : n <= 6 ? "neu" : "pos" });
+    chips(items, function (en) { askImpact(i, act, p, em, en); });
+  }
+  function askImpact(i, act, p, em, en) {
+    bot("Did this bring you closer to the person you want to be, or further away?");
+    chips([
+      { label: "+ Positive", value: "Positive", cls: "pos" },
+      { label: "~ Neutral", value: "Neutral", cls: "neu" },
+      { label: "– Negative", value: "Negative", cls: "neg" }
+    ], function (im) {
+      day().blocks.push({ block: i, time: BLOCKS[i][0], activity: act, pillar: p, emotion: em, energy: en, impact: im, at: Date.now() });
+      save(); renderHeader();
+      bot("Logged <b>" + esc(act) + "</b>: " + en + "/10, " + im.toLowerCase() + ", feeling " + esc(em.toLowerCase()) + ".");
+      chips([{ label: "Log another block", value: "again" }, { label: "Back to menu", value: "menu" }],
+        function (v) { if (v === "again") logBlock(); else showMenu(); });
+    });
+  }
+
+  // ---------- Pillar check ----------
+  function pillarCheck() {
+    bot("Tick every pillar you engaged with today, then press Done.");
+    chips(PILLARS.map(function (p) { return { label: p.name, value: p.name }; }), function (arr) {
+      day().pillars = arr; save(); renderHeader();
+      bot(arr.length ? "Saved " + arr.length + " pillar" + (arr.length > 1 ? "s" : "") + " for today." : "Saved. No pillars engaged yet.");
+      showMenu();
+    }, { multi: true, initial: day().pillars });
+  }
+
+  // ---------- Gratitude journal: wins, mundanes, challenges ----------
+  function gratStep(i) {
+    if (i >= GRAT.length) { save(); bot("Journal saved."); showMenu(); return; }
+    var g = GRAT[i];
+    var min = g.min || 0;
+    function count() { return day().gratitude.filter(function (x) { return x.type === g.k; }).length; }
+    bot("<b>" + g.t + "</b>. " + esc(g.q) + (min ? " Add at least " + min + ", then press Done." : " Add as many as you like, then press Done."));
+    askText(g.ph, function (v) {
+      if (v) {
+        day().gratitude.push({ type: g.k, text: v, at: Date.now() });
+        save();
+        if (min && count() < min) bot("Noted. " + (min - count()) + " more to go.");
+        else bot("Noted. Add another, or press Done to move on.");
+      }
+    }, { keep: true, doneLabel: "Done", onDone: function () {
+      if (min && count() < min) { bot("Add " + (min - count()) + " more " + g.t.toLowerCase() + " before you move on."); return; }
+      gratStep(i + 1);
+    } });
+  }
+
+  // ---------- End-of-day reflection ----------
+  function reflStep(i) {
+    if (i < REFL.length) {
+      bot(REFL[i][1]);
+      askText("Write it out, or skip", function (v) {
+        day().reflection[REFL[i][0]] = v;
+        reflStep(i + 1);
+      }, { optional: true });
+      return;
+    }
+    bot("Overall energy score today, from 1 to 10?");
+    var items = [];
+    for (var n = 1; n <= 10; n++) items.push({ label: String(n), value: n, cls: n <= 4 ? "neg" : n <= 6 ? "neu" : "pos" });
+    chips(items, function (n) {
+      var d = day();
+      d.reflection.overall = n; d.energy = n; d.closed = true; d.closedAt = Date.now();
+      save(); renderHeader();
+      bot("Day closed. Want your summary, or to send the report to Coach Edwin?");
+      chips([{ label: "Show my day summary", value: "s" }, { label: "Send report to Coach Edwin", value: "r" }, { label: "Back to menu", value: "m" }],
+        function (v) { if (v === "s") showSummary(); else if (v === "r") sendReport(dayKey()); else showMenu(); });
+    });
+  }
+
+  // ---------- Guidance: increase, reduce, remove, create ----------
+  function guidance(d, touched, avg) {
+    var L = d.blocks.filter(function (b) { return !b.sleep; });
+    var out = { increase: [], reduce: [], remove: [], create: [] };
+    var posPillars = {};
+    L.forEach(function (b) {
+      if (b.impact === "Positive" && b.pillar && b.pillar !== "None") posPillars[b.pillar] = true;
+    });
+    Object.keys(posPillars).forEach(function (p) {
+      out.increase.push("<b>" + esc(p) + "</b>: positive momentum today. Keep leaning in.");
+    });
+    L.filter(function (b) { return b.impact === "Positive" && b.energy >= 7; }).slice(0, 3).forEach(function (b) {
+      out.increase.push("“" + esc(b.activity) + "” left you at " + b.energy + "/10 and felt positive. Schedule more of it.");
+    });
+    var seenRed = {}, seenRem = {};
+    L.filter(function (b) { return b.impact === "Negative" && b.energy >= 5; }).forEach(function (b) {
+      if (seenRed[b.activity]) return; seenRed[b.activity] = true;
+      out.reduce.push("“" + esc(b.activity) + "” was negative, though your energy held at " + b.energy + "/10. Cap it at a set time, or limit how often it happens.");
+    });
+    L.filter(function (b) { return b.impact === "Negative" && b.energy <= 4; }).forEach(function (b) {
+      if (seenRem[b.activity]) return; seenRem[b.activity] = true;
+      out.remove.push("“" + esc(b.activity) + "” was negative and left you at " + b.energy + "/10. Remove it, or replace it with a positive habit.");
+    });
+    PILLARS.filter(function (p) { return !touched[p.name]; }).slice(0, 3).forEach(function (p) {
+      out.create.push("<b>" + esc(p.name) + "</b>: nothing logged. Try " + esc(p.starter) + ".");
+    });
+    if (L.length && avg < 5) out.create.push("A recovery block tomorrow: a 20-minute walk, an earlier wind-down, or a real rest window. Your energy ran low today.");
+    if (!d.gratitude.length) out.create.push("A nightly gratitude habit: one win, one mundane, one challenge. Start tonight.");
+    if (!L.length) out.create.push("A time log: log at least three blocks tomorrow so the guidance can work.");
+    return out;
+  }
+
+  function section(title, cls, arr, empty) {
+    var h = "<h4 class='" + cls + "'>" + title + "</h4>";
+    if (!arr.length) return h + "<div class='note'>" + empty + "</div>";
+    return h + "<ul>" + arr.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>";
+  }
+
+  // ---------- Summary and history ----------
+  function showSummary() {
+    var d = day(); var L = d.blocks; var R2 = L.filter(function (b) { return !b.sleep; }); var n = R2.length;
+    var sleepHrs = L.filter(function (b) { return b.sleep; }).length;
+    var avg = n ? R2.reduce(function (s, b) { return s + b.energy; }, 0) / n : 0;
+    var cnt = { Positive: 0, Neutral: 0, Negative: 0 };
+    R2.forEach(function (b) { cnt[b.impact]++; });
+    var touched = {};
+    d.pillars.forEach(function (p) { touched[p] = true; });
+    L.forEach(function (b) { if (b.pillar && b.pillar !== "None") touched[b.pillar] = true; });
+    var g = guidance(d, touched, avg);
+    var dateStr = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+
+    var bars = BLOCKS.map(function (b, i) {
+      var xs = L.filter(function (x) { return x.block === i && !x.sleep; });
+      var sl = L.some(function (x) { return x.block === i && x.sleep; });
+      if (!xs.length && sl) return "<div class='bcol'><div class='bar sleep' style='height:24px' title='Sleep'></div><span>" + b[1] + "</span></div>";
+      if (!xs.length) return "<div class='bcol'><div class='bar empty'></div><span>" + b[1] + "</span></div>";
+      var a = xs.reduce(function (s, x) { return s + x.energy; }, 0) / xs.length;
+      return "<div class='bcol'><div class='bar' style='height:" + Math.round(a * 11) + "px' title='" + a.toFixed(1) + "/10'></div><span>" + b[1] + "</span></div>";
+    }).join("");
+
+    var grid = PILLARS.map(function (p) {
+      return "<span class='pg" + (touched[p.name] ? " on" : "") + "'>" + esc(p.name) + "</span>";
+    }).join("");
+
+    function gratCol(k, label) {
+      var items = d.gratitude.filter(function (x) { return x.type === k; });
+      return "<div><b>" + label + " (" + items.length + ")</b><ul>" +
+        items.map(function (x) { return "<li>" + esc(x.text) + "</li>"; }).join("") + "</ul></div>";
+    }
+
+    var refl = REFL.filter(function (r) { return d.reflection[r[0]]; });
+    var reflHtml = refl.length
+      ? refl.map(function (r) { return "<li><b>" + esc(r[1]) + "</b><br>" + esc(d.reflection[r[0]]) + "</li>"; }).join("")
+      : "";
+
+    var html = "<div class='card'>" +
+      "<h3>Your day, " + esc(dateStr) + "</h3>" +
+      "<div class='note'>" + (d.closed ? "Day closed." : "Day still open. Close it for a full reflection.") + "</div>" +
+      "<h4>At a glance</h4>" +
+      "<div class='stats'>" +
+        "<div class='stat'><b>" + n + "</b><span>Blocks logged</span></div>" +
+        "<div class='stat'><b>" + sleepHrs + "</b><span>Hours of sleep</span></div>" +
+        "<div class='stat'><b>" + (n ? avg.toFixed(1) : "–") + "</b><span>Avg energy</span></div>" +
+        "<div class='stat pos'><b>" + cnt.Positive + "</b><span>Positive</span></div>" +
+        "<div class='stat neu'><b>" + cnt.Neutral + "</b><span>Neutral</span></div>" +
+        "<div class='stat neg'><b>" + cnt.Negative + "</b><span>Negative</span></div>" +
+      "</div>" +
+      "<h4>Energy by hour (grey = sleep)</h4>" +
+      "<div class='bars'>" + bars + "</div>" +
+      "<h4>Pillars engaged (" + Object.keys(touched).length + "/9)</h4>" +
+      "<div class='pgrid'>" + grid + "</div>" +
+      "<h4>Gratitude</h4>" +
+      "<div class='cols'>" + gratCol("wins", "Wins") + gratCol("mundanes", "Mundanes") + gratCol("challenges", "Challenges") + "</div>" +
+      (reflHtml ? "<h4>Your reflection</h4><ul>" + reflHtml + "</ul>" : "") +
+      "<h4>Guidance for tomorrow</h4>" +
+      "<div class='guide'>" +
+        section("Increase", "g-inc", g.increase, "Nothing clearly positive yet. Log a few more blocks.") +
+        section("Reduce", "g-red", g.reduce, "Nothing to cut back on.") +
+        section("Remove", "g-rem", g.remove, "Nothing to remove.") +
+        section("Create", "g-cre", g.create, "Nothing new needed.") +
+      "</div>" +
+      "<div class='note'>" + (n < 3 ? "Only " + n + " block" + (n === 1 ? "" : "s") + " logged, so this guidance is rough. Three or more blocks sharpen it." : "Guidance is based only on what you logged today.") + "</div>" +
+    "</div>";
+    bot(html, true);
+    showMenu();
+  }
+
+  function showHistory() {
+    var keys = Object.keys(state.days).filter(function (k) {
+      var d = state.days[k]; return d.blocks.length || d.gratitude.length || d.closed;
+    }).sort().reverse().slice(0, 14);
+    if (!keys.length) { bot("No history yet. Log a block to start."); showMenu(); return; }
+    var rows = keys.map(function (k) {
+      var d = state.days[k];
+      var rated = d.blocks.filter(function (b) { return !b.sleep; });
+      var avg = rated.length ? (rated.reduce(function (s, b) { return s + b.energy; }, 0) / rated.length).toFixed(1) : "–";
+      return "<li><b>" + k + "</b> · " + rated.length + " blocks · avg " + avg + " · " + (d.closed ? "closed" : "open") + "</li>";
+    }).join("");
+    bot("<div class='card'><h3>History</h3><ul>" + rows + "</ul></div>", true);
+    showMenu();
+  }
+
+  // ---------- Import a filled Word form ----------
+  var W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+  var DAY_NAMES = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+  function loadJSZip() {
+    return new Promise(function (resolve, reject) {
+      if (window.JSZip) { resolve(window.JSZip); return; }
+      var s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+      s.onload = function () { window.JSZip ? resolve(window.JSZip) : reject(new Error("no JSZip")); };
+      s.onerror = function () { reject(new Error("JSZip failed to load")); };
+      document.head.appendChild(s);
+    });
+  }
+  function wText(node) {
+    var out = "", ts = node.getElementsByTagNameNS(W_NS, "t");
+    for (var i = 0; i < ts.length; i++) out += ts[i].textContent;
+    return out.trim();
+  }
+  function pad2(x) { return String(x).padStart(2, "0"); }
+  function parseDate(s) {
+    var m = (s || "").match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    var y = (s || "").match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    var Y, M, D;
+    if (m) { D = +m[1]; M = +m[2]; Y = +m[3]; }
+    else if (y) { Y = +y[1]; M = +y[2]; D = +y[3]; }
+    else return null;
+    var check = new Date(Y, M - 1, D);
+    if (check.getFullYear() !== Y || check.getMonth() !== M - 1 || check.getDate() !== D) return null;
+    return Y + "-" + pad2(M) + "-" + pad2(D);
+  }
+  function matchPillar(s) {
+    var t = (s || "").trim().toLowerCase();
+    for (var i = 0; i < PILLARS.length; i++) if (PILLARS[i].name.toLowerCase() === t) return PILLARS[i].name;
+    return "None";
+  }
+  function matchImpact(s) {
+    var t = (s || "").trim().toLowerCase();
+    if (t === "positive") return "Positive";
+    if (t === "negative") return "Negative";
+    return "Neutral";
+  }
+  function readForm(doc) {
+    var body = doc.getElementsByTagNameNS(W_NS, "body")[0];
+    var days = [], cur = null;
+    Array.prototype.forEach.call(body.children, function (node) {
+      if (node.localName === "p") {
+        var t = wText(node).toUpperCase();
+        if (DAY_NAMES.indexOf(t) >= 0) { cur = { name: t, kv: {}, times: [], grat: [], refl: [] }; days.push(cur); }
+        return;
+      }
+      if (node.localName !== "tbl" || !cur) return;
+      var cells = Array.prototype.map.call(node.getElementsByTagNameNS(W_NS, "tr"), function (r) {
+        return Array.prototype.map.call(r.getElementsByTagNameNS(W_NS, "tc"), wText);
+      });
+      var head = (cells[0] || [])[0] || "";
+      if (head === "Time") cur.times = cells.slice(1);
+      else if (head === "Type") cur.grat = cells.slice(1);
+      else if (head === "Question") cur.refl = cells.slice(1);
+      else cells.forEach(function (c) { cur.kv[c[0] || ""] = c[1] || ""; });
+    });
+    return days;
+  }
+  function findKey(obj, prefix) {
+    var ks = Object.keys(obj).filter(function (k) { return k.indexOf(prefix) === 0; });
+    return ks.length ? obj[ks[0]] : "";
+  }
+  function parseBedHour(text) {
+    var m = (text || "").trim().toLowerCase().match(/^(\d{1,2})(?::\d{2})?\s*(am|pm)?$/);
+    if (!m) return null;
+    var h = +m[1];
+    if (m[2]) {
+      if (h < 1 || h > 12) return null;
+      return (h % 12) + (m[2] === "pm" ? 12 : 0);
+    }
+    return h <= 23 ? h : null;
+  }
+  function buildDay(d) {
+    var key = parseDate(findKey(d.kv, "Date"));
+    if (!key) return null;
+    var bedHour = parseBedHour(findKey(d.kv, "Bedtime"));
+    var hoursSlept = parseInt(findKey(d.kv, "Hours slept"), 10);
+    var sleepPlan = (bedHour !== null && hoursSlept >= 1 && hoursSlept <= 12) ? { targetDate: key, bedHour: bedHour, hours: hoursSlept } : null;
+    var overall = parseInt(findKey(d.kv, "Overall"), 10);
+    if (!(overall >= 1 && overall <= 10)) overall = null;
+    var blocks = [], warnings = 0;
+    d.times.forEach(function (c, i) {
+      if (!c[1]) return;
+      var energy = parseInt(c[4], 10);
+      if (!(energy >= 1 && energy <= 10)) { warnings++; return; }
+      blocks.push({ block: i, time: BLOCKS[i][0], activity: c[1], pillar: matchPillar(c[2]), emotion: c[3] || null, energy: energy, impact: matchImpact(c[5]), at: Date.now() });
+    });
+    var gratitude = [];
+    d.grat.forEach(function (c) {
+      var label = (c[0] || "").toLowerCase(), text = c[1] || "";
+      if (!text) return;
+      var type = label.indexOf("win") === 0 ? "wins" : label.indexOf("mundane") === 0 ? "mundanes" : label.indexOf("challenge") === 0 ? "challenges" : null;
+      if (type) gratitude.push({ type: type, text: text, at: Date.now() });
+    });
+    var reflection = {};
+    REFL.forEach(function (r) {
+      d.refl.forEach(function (c) { if (c[0] === r[1] && c[1]) reflection[r[0]] = c[1]; });
+    });
+    if (overall) reflection.overall = overall;
+    var pillars = [];
+    blocks.forEach(function (b) {
+      if (!b.sleep && b.pillar !== "None" && pillars.indexOf(b.pillar) < 0) pillars.push(b.pillar);
+    });
+    var closed = !!overall;
+    return {
+      key: key, warnings: warnings, sleepPlan: sleepPlan,
+      rec: { blocks: blocks, pillars: pillars, gratitude: gratitude, reflection: reflection, closed: closed, energy: overall, closedAt: closed ? Date.now() : undefined }
+    };
+  }
+  function importDays(days) {
+    var imported = 0, timeBlocks = 0, grat = 0, warnings = 0, skipped = [], plans = [];
+    days.forEach(function (d) {
+      var r = buildDay(d);
+      if (!r) { skipped.push(d.name.toLowerCase()); return; }
+      state.days[r.key] = r.rec;
+      if (r.sleepPlan) plans.push(r.sleepPlan);
+      imported++;
+      warnings += r.warnings;
+      timeBlocks += r.rec.blocks.filter(function (b) { return !b.sleep; }).length;
+      grat += r.rec.gratitude.length;
+    });
+    if (!imported) return "No day had a valid date. Write each Date as DD/MM/YYYY and try again.";
+    plans.forEach(function (plan) { placeSleep(plan); });
+    save();
+    var msg = "Imported " + imported + " day" + (imported === 1 ? "" : "s") + ": " + timeBlocks + " time blocks and " + grat + " gratitude entries" +
+      (plans.length ? ", with " + plans.length + " night" + (plans.length === 1 ? "" : "s") + " of sleep" : "") + ".";
+    if (warnings) msg += " " + warnings + " time row" + (warnings === 1 ? " was" : "s were") + " skipped because the energy score was missing or not 1 to 10.";
+    if (skipped.length) msg += " Skipped (no valid date): " + skipped.join(", ") + ".";
+    return msg;
+  }
+  function importForm() {
+    bot("Choose your filled Word form (.docx). Each day with a valid date replaces that day's entries on this device.");
+    composer.innerHTML = "";
+    var inp = el("input");
+    inp.type = "file";
+    inp.accept = ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    inp.setAttribute("aria-label", "Choose filled Word form");
+    inp.onchange = function () {
+      var f = inp.files && inp.files[0];
+      if (!f) return;
+      say(f.name);
+      bot("Reading your form…");
+      f.arrayBuffer()
+        .then(function (buf) { return loadJSZip().then(function (JSZip) { return JSZip.loadAsync(buf); }); })
+        .then(function (zip) {
+          var part = zip.file("word/document.xml");
+          if (!part) throw new Error("not a docx");
+          return part.async("string");
+        })
+        .then(function (xml) {
+          var doc = new DOMParser().parseFromString(xml, "application/xml");
+          bot(importDays(readForm(doc)));
+          renderHeader();
+        })
+        .catch(function () {
+          bot("That file could not be read. Save the form as a Word (.docx) file, make sure you are online, and try again.");
+        })
+        .then(function () { showMenu(); });
+    };
+    composer.appendChild(inp);
+  }
+
+  // ---------- Daily report for Coach Edwin (WhatsApp) ----------
+  var COACH_WA = "254724328059";
+  function xmlEsc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function plain(s) {
+    return String(s).replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  }
+  function reportLines(key, d) {
+    var L = d.blocks.slice().sort(function (a, b) { return a.block - b.block; });
+    var R = L.filter(function (b) { return !b.sleep; });
+    var sleepHrs = L.filter(function (b) { return b.sleep; }).length;
+    var avg = R.length ? R.reduce(function (s, b) { return s + b.energy; }, 0) / R.length : 0;
+    var cnt = { Positive: 0, Neutral: 0, Negative: 0 };
+    R.forEach(function (b) { cnt[b.impact]++; });
+    var touched = {};
+    (d.pillars || []).forEach(function (p) { touched[p] = true; });
+    L.forEach(function (b) { if (b.pillar && b.pillar !== "None") touched[b.pillar] = true; });
+    var g = guidance(d, touched, avg);
+    var pillarList = Object.keys(touched);
+    var out = [];
+    function p(t, o) { out.push(Object.assign({ t: t }, o || {})); }
+    p("Edwin Moindi Habit & Energy Tracker", { b: true, s: 30 });
+    p("Daily report for " + key + (state.name ? " · " + state.name : ""));
+    p("Summary", { b: true, s: 24 });
+    p("Blocks logged: " + R.length + " · Hours of sleep: " + sleepHrs);
+    p("Average energy: " + (R.length ? avg.toFixed(1) : "–") + " / 10");
+    p("Positive: " + cnt.Positive + " · Neutral: " + cnt.Neutral + " · Negative: " + cnt.Negative);
+    p("Pillars engaged (" + pillarList.length + "/9): " + (pillarList.length ? pillarList.join(", ") : "none"));
+    p("Time log", { b: true, s: 24 });
+    if (!L.length) p("No entries logged.");
+    L.forEach(function (b) {
+      if (b.sleep) p(b.time + " · Sleep");
+      else p(b.time + " · " + b.activity + " · " + b.pillar + " · " + (b.emotion || "–") + " · Energy " + b.energy + "/10 · " + b.impact);
+    });
+    p("Gratitude", { b: true, s: 24 });
+    [["wins", "Wins"], ["mundanes", "Mundanes"], ["challenges", "Challenges"]].forEach(function (x) {
+      var items = d.gratitude.filter(function (q) { return q.type === x[0]; });
+      p(x[1] + " (" + items.length + ")", { b: true });
+      items.forEach(function (q) { p("   • " + q.text); });
+    });
+    p("Reflection", { b: true, s: 24 });
+    REFL.forEach(function (r) {
+      if (d.reflection[r[0]]) { p(r[1], { b: true }); p("   " + d.reflection[r[0]]); }
+    });
+    if (d.reflection.overall) p("Overall energy: " + d.reflection.overall + " / 10");
+    p("Guidance for tomorrow", { b: true, s: 24 });
+    [["Increase", "increase"], ["Reduce", "reduce"], ["Remove", "remove"], ["Create", "create"]].forEach(function (x) {
+      p(x[0], { b: true });
+      if (!g[x[1]].length) p("   Nothing to flag.");
+      g[x[1]].forEach(function (item) { p("   • " + plain(item)); });
+    });
+    p("");
+    p("Shared from the user's own device. Please keep it confidential.", { s: 18 });
+    return out;
+  }
+  function makeDocx(lines) {
+    return loadJSZip().then(function (JSZip) {
+      var body = lines.map(function (l) {
+        var rPr = "<w:rPr>" + (l.b ? "<w:b/>" : "") + '<w:sz w:val="' + (l.s || 22) + '"/></w:rPr>';
+        return '<w:p><w:pPr><w:spacing w:after="100"/></w:pPr><w:r>' + rPr +
+          '<w:t xml:space="preserve">' + xmlEsc(l.t) + "</w:t></w:r></w:p>";
+      }).join("");
+      var head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+      var doc = head + '<w:document xmlns:w="' + W_NS + '"><w:body>' + body +
+        '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="1000" w:bottom="1000" w:left="1000" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>';
+      var ct = head + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
+      var rels = head + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+      var zip = new JSZip();
+      zip.file("[Content_Types].xml", ct);
+      zip.file("_rels/.rels", rels);
+      zip.file("word/document.xml", doc);
+      return zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    });
+  }
+  function markSent(key) {
+    state.sent = state.sent || {};
+    state.sent[key] = Date.now();
+    save();
+  }
+  function fallbackSend(blob, name, text, key) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    var wa = "https://wa.me/" + COACH_WA + "?text=" + encodeURIComponent(text + ". My report is attached.");
+    bot("Your report downloaded as <b>" + xmlEsc(name) + "</b>. Open WhatsApp to Coach Edwin, tap the attachment icon, choose Document, and select the report." +
+      "<div class='chips'><a class='btn' style='text-decoration:none;display:inline-block' href='" + wa + "' target='_blank' rel='noopener'>Open WhatsApp</a></div>");
+  }
+  function sendReport(key) {
+    var d = state.days[key];
+    if (!d || !(d.blocks.length || d.closed)) {
+      bot("There is nothing logged for that day yet. Log a block or close the day first.");
+      showMenu();
+      return;
+    }
+    bot("Preparing your report…");
+    var name = "Habit-Energy-Report-" + key + ".docx";
+    var text = "Daily report for " + key + (state.name ? " from " + state.name : "");
+    makeDocx(reportLines(key, d)).then(function (blob) {
+      var file = null;
+      try { file = new File([blob], name, { type: blob.type }); } catch (e) {}
+      if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file], title: name, text: text }).then(function () {
+          markSent(key);
+          bot("Shared. In the share sheet, choose WhatsApp, then Coach Edwin (+254 724 328 059).");
+        });
+      }
+      fallbackSend(blob, name, text, key);
+    }).catch(function (err) {
+      if (err && err.name === "AbortError") bot("Sharing was cancelled. Your report has not been sent.");
+      else bot("The report could not be prepared on this device. Please try again.");
+    }).then(function () { showMenu(); });
+  }
+
+  // ---------- Menu and actions ----------
+  function showMenu() {
+    bot("What would you like to do next?");
+    chips(MENU, function (v) { actions[v](); });
+  }
+
+  var actions = {
+    log: logBlock,
+    pillars: pillarCheck,
+    grat: function () { gratStep(0); },
+    close: function () { reflStep(0); },
+    summary: showSummary,
+    history: showHistory,
+    export: function () {
+      try {
+        var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url; a.download = "habit-energy-backup-" + dayKey() + ".json";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        bot("Your backup is downloading. It is the only copy of your data if you clear your browser data, so keep it safe.");
+      } catch (e) { bot("The backup could not start on this device."); }
+      showMenu();
+    },
+    import: importForm,
+    send: function () { sendReport(dayKey()); },
+    signout: function () {
+      if (!sb) return;
+      sb.auth.signOut().then(function () { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); });
+    },
+    restore: function () {
+      bot("Choose a backup file you downloaded earlier. Restoring replaces the data on this device.");
+      composer.innerHTML = "";
+      var inp = el("input");
+      inp.type = "file"; inp.accept = "application/json,.json";
+      inp.setAttribute("aria-label", "Choose backup file");
+      inp.onchange = function () {
+        var f = inp.files && inp.files[0];
+        if (!f) return;
+        var r = new FileReader();
+        r.onload = function () {
+          try {
+            var s = JSON.parse(r.result);
+            if (!s || typeof s !== "object" || !s.days) throw new Error("bad");
+            state = s; save(); renderHeader(); renderReminderBtn();
+            say(f.name); bot("Data restored.");
+          } catch (e) { bot("That file is not a valid backup."); }
+          showMenu();
+        };
+        r.readAsText(f);
+      };
+      composer.appendChild(inp);
+    },
+    logNow: function () { askActivity(blockIdxNow()); },
+    skip: function () { bot("No problem. The next check-in arrives on the next hour."); }
+  };
+  thread.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-act]");
+    if (!b) return;
+    var fn = actions[b.getAttribute("data-act")];
+    if (fn) { b.disabled = true; fn(); }
+  });
+
+  // ---------- Header ----------
+  function renderHeader() {
+    var d = day();
+    var now = new Date();
+    document.getElementById("today").textContent = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    document.getElementById("prog").textContent = d.blocks.filter(function (b) { return !b.sleep; }).length + " blocks · " + d.pillars.length + "/9 pillars" + (d.closed ? " · closed" : "");
+  }
+  function renderReminderBtn() {
+    var b = document.getElementById("remind");
+    var on = false;
+    try { on = ("Notification" in window) && Notification.permission === "granted" && state.reminders; } catch (e) {}
+    b.textContent = on ? "Reminders on" : "Turn on reminders";
+  }
+  document.getElementById("remind").addEventListener("click", function () {
+    try {
+      if (!("Notification" in window)) { bot("This browser does not show notifications. Check-ins will still appear in this chat."); return; }
+      Notification.requestPermission().then(function (p) {
+        state.reminders = p === "granted"; save(); renderReminderBtn();
+        bot(p === "granted"
+          ? "Reminders are on. You will get a notification on every hour while this page stays open."
+          : "Notifications are blocked. Check-ins will still appear in this chat.");
+      }).catch(function () { bot("Notifications could not be turned on here. Check-ins will still appear in this chat."); });
+    } catch (e) { bot("Notifications could not be turned on here. Check-ins will still appear in this chat."); }
+  });
+
+  // ---------- 30-minute check-ins ----------
+  function notify(title, body) {
+    try {
+      if (state.reminders && ("Notification" in window) && Notification.permission === "granted") new Notification(title, { body: body });
+    } catch (e) {}
+  }
+  function checkin() {
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    bot("<div class='checkin'><b>Hourly check-in · " + hh + "</b>" +
+      "<p>What has been happening since the last check-in? Log the essentials: activity, pillar, emotion, energy and impact.</p>" +
+      "<div class='chips'><button class='chip sel' type='button' data-act='logNow'>Log this block</button>" +
+      "<button class='chip' type='button' data-act='skip'>Not now</button></div></div>");
+    notify("Habit check-in", "What has been happening in the last hour?");
+  }
+  var lastSlot = Math.floor(Date.now() / 3600000);
+  function tick() {
+    if (!started) return;
+    var sleepDone = applyPendingSleep();
+    if (sleepDone) bot(sleepDone);
+    var slot = Math.floor(Date.now() / 3600000);
+    if (slot !== lastSlot) { lastSlot = slot; checkin(); }
+    var now = new Date();
+    var k = dayKey(now);
+    if (now.getHours() >= 21 && state.eveningPrompted !== k && !day().closed) {
+      state.eveningPrompted = k; save();
+      bot("It is evening. Close the day when you are ready, and I will show you what your day looked like.");
+      notify("Close your day", "Reflect on today and see your guidance.");
+      bot("<div class='chips'><button class='chip sel' type='button' data-act='close'>Close the day</button></div>");
+    }
+  }
+  setInterval(tick, 15000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) tick(); });
+
+  var started = false;
+  function startApp() {
+    started = true;
+  renderHeader();
+  renderReminderBtn();
+  var sleepNote = applyPendingSleep();
+  if (sleepNote) bot(sleepNote);
+  function greet() {
+    bot("Hi" + (state.name ? " " + esc(state.name) : "") + ". Log what happens through the day. Every hour, on the hour, I will check in. At the end of the day you get a summary with what to increase, reduce, remove and create.");
+    showMenu();
+  }
+  if (!state.name) {
+    bot("Hello. What should I call you?");
+    askText("Your first name", function (v) {
+      if (v) { state.name = v; save(); }
+      greet();
+    }, { optional: true });
+  } else {
+    greet();
+  }
+  }
+
+  // ---------- Accounts and sync (Supabase) ----------
+  var cfg = window.HABIT_CONFIG || {};
+  var configured = !!(window.supabase && cfg.supabaseUrl && cfg.supabaseAnonKey &&
+    cfg.supabaseUrl.indexOf("YOUR-") < 0 && cfg.supabaseAnonKey.indexOf("YOUR-") < 0);
+  var sb = configured ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey) : null;
+  var session = null, pushTimer = null;
+  function freshState() { return { v: 3, name: "", days: {}, eveningPrompted: "", reminders: false }; }
+  function loadRemote() {
+    return sb.from("habit_data").select("data").eq("user_id", session.user.id).maybeSingle().then(function (res) {
+      if (res.error) throw res.error;
+      if (res.data && res.data.data && res.data.data.days) {
+        state = res.data.data;
+        state.owner = session.user.id;
+        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      } else {
+        if (state.owner && state.owner !== session.user.id) state = freshState();
+        state.owner = session.user.id;
+        return pushRemote();
+      }
+    });
+  }
+  function pushRemote() {
+    if (!sb || !session) return Promise.resolve();
+    return sb.from("habit_data").upsert({ user_id: session.user.id, data: state, updated_at: new Date().toISOString() })
+      .then(function (res) {
+        if (res.error) bot("Saved on this device. It could not sync to your account yet. Check your connection.");
+      });
+  }
+  function showAuth() {
+    bot("Sign in to open your tracker. Your entries are private to your account.");
+    composer.innerHTML = "";
+    var f = el("form", "auth");
+    f.innerHTML =
+      '<input id="auth-email" type="email" placeholder="Email" autocomplete="email" aria-label="Email" required>' +
+      '<input id="auth-pass" type="password" placeholder="Password (at least 8 characters)" autocomplete="current-password" aria-label="Password" minlength="8" required>' +
+      '<label class="consent"><input id="auth-consent" type="checkbox"><span>New account: I agree that my entries are stored securely for my coaching with Coach Edwin, and I can ask for them to be deleted at any time.</span></label>' +
+      '<div class="row"><button class="ghost" type="button" id="auth-up">Create account</button><button class="btn" type="submit">Sign in</button></div>';
+    composer.appendChild(f);
+    var email = f.querySelector("#auth-email"), pass = f.querySelector("#auth-pass"), consent = f.querySelector("#auth-consent");
+    f.onsubmit = function (e) {
+      e.preventDefault();
+      sb.auth.signInWithPassword({ email: email.value.trim(), password: pass.value }).then(function (res) {
+        if (res.error) { bot("That email and password did not match. Try again, or create an account."); showAuth(); return; }
+        session = res.data.session;
+        return loadRemote().then(startApp, startApp);
+      }).catch(function () { bot("Could not sign in. Check your connection and try again."); showAuth(); });
+    };
+    f.querySelector("#auth-up").onclick = function () {
+      if (!email.value || pass.value.length < 8) { bot("Enter an email and a password of at least 8 characters."); return; }
+      if (!consent.checked) { bot("Please tick the consent box to create an account."); return; }
+      sb.auth.signUp({ email: email.value.trim(), password: pass.value, options: { data: { consent_at: new Date().toISOString() } } })
+        .then(function (res) {
+          if (res.error) { bot(res.error.message); return; }
+          if (res.data.session) { session = res.data.session; return loadRemote().then(startApp, startApp); }
+          bot("Account created. Check your email for a confirmation link, then sign in here.");
+          showAuth();
+        }).catch(function () { bot("Could not create the account. Check your connection and try again."); });
+    };
+  }
+  function boot() {
+    if (!sb) {
+      bot("Sign-in is not set up yet. Add your Supabase details to config.js, then reload this page.");
+      return;
+    }
+    sb.auth.getSession().then(function (res) {
+      session = res.data.session;
+      if (!session) { showAuth(); return; }
+      return loadRemote().then(startApp, startApp);
+    }).catch(function () { showAuth(); });
+  }
+
+  boot();
+})();
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>
